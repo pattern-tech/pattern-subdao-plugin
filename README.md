@@ -1,1 +1,1 @@
-# subdao-plugin
+# SubDAO Plugin

@@ -1,0 +1,3 @@
+[submodule "hatsprotocol"]
+	path = hatsprotocol
+	url = https://github.com/Hats-Protocol/hats-protocol.git
