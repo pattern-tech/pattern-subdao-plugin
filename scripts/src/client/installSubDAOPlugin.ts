@@ -1,24 +1,52 @@
 import { activeContractsList } from "@aragon/osx-ethers";
 import {
-    ApplyInstallationParams,
-    DaoAction,
-    MetadataAbiInput,
-    PrepareInstallationParams,
+  ApplyInstallationParams,
+  DaoAction,
+  MetadataAbiInput,
+  PrepareInstallationParams,
 } from "@aragon/sdk-client-common";
 import { VoteValues } from "@aragon/sdk-client";
 import { Client, TokenVotingClient } from "../lib/sdk";
 import { getWallet } from "../lib/helpers";
-import { AllowedNetwork } from "../lib/constants";
-import { ethers } from 'ethers';
-
+import { AllowedNetwork, RepoAddress } from "../lib/constants";
+import { ethers } from "ethers";
+import * as metadata from './../../../subdao-plugin/src/build-metadata.json';
 const log = console.log;
 
-// ======================= *** CONFIG *** =====================
+import { parse, ArgumentConfig } from "ts-command-line-args";
 
-// ***NOTE***: The configured Private Key must be Able to create proposals on the DAO
-const childDAOAddress = "daoyeman.dao.eth";
-const NETWORK: AllowedNetwork = "goerli";
-const adminRepoAddress = '0x44B7C01C5101bb94B4fA9A7f72c42bcAA87979Ca'
+// Define the configuration for the command-line arguments
+interface MyArgs {
+  childDaoAddress: string;
+  parentDaoAddress: string;
+  network: string;
+}
+
+// Define the argument configuration
+const config: ArgumentConfig<MyArgs> = {
+  childDaoAddress: {
+    type: String,
+    alias: "c",
+    description: "The child dao address or ENS",
+  },
+  parentDaoAddress: {
+    type: String,
+    alias: "p",
+    description: "The parent dao address or ENS",
+  },
+  network: {
+    type: String,
+    alias: "n",
+    description: "The network, can be one of [mainnet, goerli, polygon, mumbai, base, baseGoerli, local]",
+  },
+};
+
+const args = parse<MyArgs>(config);
+
+const childDAO = args.childDaoAddress;
+const parentDAO = args.parentDaoAddress;
+const NETWORK: AllowedNetwork = args.network as AllowedNetwork;
+const subDAORepoAddress = RepoAddress[NETWORK];
 
 // ============================================================
 // 0. Setup: Get all the addresses and contracts
@@ -28,19 +56,23 @@ const deployer = getWallet();
 const client = Client(NETWORK);
 const tokenVotingClient = TokenVotingClient(NETWORK);
 
-// We are going to use the admin repo because its super simple and deploying our own repo can already be done with the cli
-// const adminRepoAddress = activeContractsList[NETWORK]["admin-repo"];
 
 // get the dao details
-const daoDetails = await client.methods.getDao(childDAOAddress);
-if (!daoDetails) throw new Error("DAO not found");
+const childDaoDetails = await client.methods.getDao(childDAO);
+if (!childDaoDetails) throw new Error("DAO not found");
 
-const DAO_ADDRESS = daoDetails.address;
-const VOTING_APP_ADDRESS = daoDetails.plugins[0].instanceAddress;
+const parentDaoDetails = await client.methods.getDao(parentDAO);
+if (!parentDaoDetails) throw new Error("DAO not found");
 
-log("DAO Contract: ", DAO_ADDRESS);
-log("Voting Plugin: ", VOTING_APP_ADDRESS);
-log(daoDetails.plugins)
+const cbildDAOAddress = childDaoDetails.address;
+const parentDaoAddress = parentDaoDetails.address;
+const votingPluginAddress = childDaoDetails.plugins.filter(e => e.id === "token-voting.plugin.dao.eth")[0].instanceAddress;
+
+log("Child DAO Contract: ", cbildDAOAddress);
+log("Parent DAO Contract: ", parentDaoAddress);
+log("Voting Plugin address: ", votingPluginAddress);
+log("Child DAO Plugins", childDaoDetails.plugins);
+log("SubDAO Repo Address", subDAORepoAddress);
 
 // ==============================================================
 // 1. PrepareInstallation: Using the PluginSetupProcessor, prepare the installation
@@ -50,41 +82,27 @@ log(daoDetails.plugins)
 // 1a. ***Prepare the installation metadata***
 // This is the metadata that is needed to initialize the plugin. Its the the same thing that is encoded in the setup contract
 // https://devs.aragon.org/docs/osx/how-to-guides/plugin-development/publication/metadata
-const adminSetupAbiMetadata: MetadataAbiInput[] = [
-    {
-        "internalType": "address",
-        "name": "_childDAO",
-        "type": "address",
-        description:"description"
-    },
-    {
-        "internalType": "bytes",
-        "name": "_data",
-        "type": "bytes",
-        description:"description"
-    }
-];
+const setupAbiMetadata: MetadataAbiInput[] = metadata.pluginSetup.prepareInstallation.inputs;
 
 // 1b. ***Prepare the installation params***
-const adminAddress = ethers.utils.defaultAbiCoder.encode(
-    ['address'],
-    ["0x796f24671a61431851411864d8abd1cb9b3d60f6"]
+const data = ethers.utils.defaultAbiCoder.encode(
+  ["address"],
+  [parentDaoAddress]
 );
-const adminSetupParams = [DAO_ADDRESS, adminAddress];
+const setupParams = [cbildDAOAddress, data];
 
 // 1c. ***Prepare the installation***
 const prepareInstallParams: PrepareInstallationParams = {
-    daoAddressOrEns: DAO_ADDRESS,
-    pluginRepo: adminRepoAddress,
-    installationAbi: adminSetupAbiMetadata,
-    installationParams: adminSetupParams,
+  daoAddressOrEns: cbildDAOAddress,
+  pluginRepo: subDAORepoAddress,
+  installationAbi: setupAbiMetadata,
+  installationParams: setupParams,
 };
 
 log("Prepare Installation...");
 // 1d. ***Call the prepareInstallation() on the SDK **
 // This returns an async generator that will return the steps as they are completed
-const prepareSteps =
-    client.methods.prepareInstallation(prepareInstallParams);
+const prepareSteps = client.methods.prepareInstallation(prepareInstallParams);
 
 // 1e. ***Iterate through the steps***
 const prepareInstallStep1 = await (await prepareSteps.next()).value;
@@ -107,37 +125,37 @@ const installdata = prepareInstallStep2 satisfies ApplyInstallationParams;
 // [1] Installs the plugin,
 // [2] Removes the PSP permission to install
 const daoActions: DaoAction[] = client.encoding.applyInstallationAction(
-    DAO_ADDRESS,
-    installdata,
+  cbildDAOAddress,
+  installdata
 );
 
 // 2b. ***Pin the metadata***
 const metadataUri: string = await tokenVotingClient.methods.pinMetadata({
-    title: "Test metadata",
-    summary: "This is a test proposal",
-    description: "This is the description of a long test proposal",
-    resources: [
-        {
-            url: "https://thforumurl.com",
-            name: "Forum",
-        },
-    ],
-    media: {
-        header: "https://fileserver.com/header.png",
-        logo: "https://fileserver.com/logo.png",
+  title: "Sub-DAO plugin installation",
+  summary: "Granting parent DAO execution permission on child dao",
+  description: `By installing this plugin, the plugin will grant the execution access of child dao (${childDAO}) to parent dao (${parentDAO})`,
+  resources: [
+    {
+      url: "https://patterns.community",
+      name: "Pattern",
     },
+  ],
+  media: {
+    header: "https://assets-global.website-files.com/65410dc30116ce87ecbef5cd/654f75bc7db9aa282ca87e21_Logo%2Btext%20White.png",
+    logo: "https://assets-global.website-files.com/65410dc30116ce87ecbef5cd/654f75bc7db9aa282ca87e21_Logo%2Btext%20White.png",
+  },
 });
 
 // 2c. ***Create the proposal***
 // this returns an export generator that will create the proposal
 const createProposalSteps = tokenVotingClient.methods.createProposal({
-    metadataUri,
-    pluginAddress: VOTING_APP_ADDRESS,
-    actions: daoActions,
-    creatorVote: VoteValues.YES, // creator votes yes
-    executeOnPass: true, // execute on pass
-    startDate: new Date(0), // Start immediately
-    endDate: new Date(0), // uses minimum voting duration
+  metadataUri,
+  pluginAddress: votingPluginAddress,
+  actions: daoActions,
+  creatorVote: VoteValues.YES, // creator votes yes
+  executeOnPass: true, // execute on pass
+  startDate: new Date(0), // Start immediately
+  endDate: new Date(0), // uses minimum voting duration
 });
 
 // 2d. ***Iterate through the steps***

@@ -38,7 +38,7 @@ const getContectParams = (network: AllowedNetwork): ContextParams => {
         // They will switch depending on the network (production, development)
         graphqlNodes: [
             {
-                url: "https://subgraph.satsuma-prod.com/qHR2wGfc5RLi6/aragon/osx-goerli/api",
+                url: "https://subgraph.satsuma-prod.com/qHR2wGfc5RLi6/aragon/osx-goerli/version/v1.3.1/api",
             },
         ],
     }

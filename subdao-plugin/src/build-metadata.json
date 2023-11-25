@@ -10,12 +10,14 @@
         {
           "internalType": "address",
           "name": "_childDAO",
-          "type": "address"
+          "type": "address",
+          "description": "child contract address or ENS"
         },
         {
           "internalType": "bytes",
           "name": "_data",
-          "type": "bytes"
+          "type": "bytes",
+          "description": "parent contract address or ENS"
         }
       ]
     },
