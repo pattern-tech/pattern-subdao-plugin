@@ -70,16 +70,19 @@ export async function installSubDaoPlugin(
   // get the dao details
   const childDaoDetails = await client.methods.getDao(childDAO);
   if (!childDaoDetails) throw new Error("DAO not found");
-
   const parentDaoDetails = await client.methods.getDao(parentDAO);
   if (!parentDaoDetails) throw new Error("DAO not found");
 
   const cbildDAOAddress = childDaoDetails.address;
   const parentDaoAddress = parentDaoDetails.address;
-  const votingPluginAddress = childDaoDetails.plugins.filter(
-    (e) => e.id === "token-voting.plugin.dao.eth"
-  )[0].instanceAddress;
+  const votingPlugin = childDaoDetails.plugins.filter(
+    (e) => ["token-voting.plugin.dao.eth", "multisig.plugin.dao.eth"].includes(e.id)
+  );
 
+  if (votingPlugin.length === 0) throw new Error("Can not find the voting plugin");
+
+  const votingPluginAddress = votingPlugin[0].instanceAddress
+  
   log("Child DAO Contract: ", cbildDAOAddress);
   log("Parent DAO Contract: ", parentDaoAddress);
   log("Voting Plugin address: ", votingPluginAddress);
