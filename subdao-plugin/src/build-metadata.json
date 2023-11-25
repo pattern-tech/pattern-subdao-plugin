@@ -1,30 +1,28 @@
-
-
 {
-  "ui": {},
-  "change": "Initial build.",
-  "pluginSetup": {
-    "prepareInstallation": {
-      "description": "The information required for the installation of build 1.",
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_childDAO",
-          "type": "address",
-          "description": "child contract address or ENS"
+    "ui": {},
+    "change": "Initial build.",
+    "pluginSetup": {
+        "prepareInstallation": {
+            "description": "The information required for the installation of build 1.",
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "_childDAO",
+                    "type": "address",
+                    "description": "child contract address or ENS"
+                },
+                {
+                    "internalType": "bytes",
+                    "name": "_data",
+                    "type": "bytes",
+                    "description": "parent contract address or ENS"
+                }
+            ]
         },
-        {
-          "internalType": "bytes",
-          "name": "_data",
-          "type": "bytes",
-          "description": "parent contract address or ENS"
+        "prepareUpdate": {},
+        "prepareUninstallation": {
+            "description": "The information required for the uninstallation of build 1.",
+            "inputs": []
         }
-      ]
-    },
-    "prepareUpdate": {},
-    "prepareUninstallation": {
-      "description": "The information required for the uninstallation of build 1.",
-      "inputs": []
     }
-  }
 }

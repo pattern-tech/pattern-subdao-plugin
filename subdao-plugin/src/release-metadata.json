@@ -1,5 +1,5 @@
 {
-  "name": "SubDAOPlugin",
-  "description": "This plugin provides root access of the child DAO to the parent DAO.",
-  "images": {}
+    "name": "SubDAOPlugin",
+    "description": "This plugin provides root access of the child DAO to the parent DAO.",
+    "images": {}
 }

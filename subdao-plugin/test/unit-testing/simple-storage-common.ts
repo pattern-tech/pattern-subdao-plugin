@@ -1,4 +1,4 @@
-import {ethers} from 'hardhat';
+import { ethers } from 'hardhat';
 
 export const abiCoder = ethers.utils.defaultAbiCoder;
 export const EMPTY_DATA = '0x';

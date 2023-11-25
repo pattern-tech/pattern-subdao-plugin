@@ -6,7 +6,7 @@ export const networkRPC = {
     base: 'https://rpc.ankr.com/base',
     baseGoerli: 'https://rpc.ankr.com/base_goerli',
     local: 'http://localhost:8545',
-}
+};
 
 export const RepoAddress = {
     // mainnet: 'https://rpc.ankr.com/eth',
@@ -16,6 +16,6 @@ export const RepoAddress = {
     // base: 'https://rpc.ankr.com/base',
     // baseGoerli: 'https://rpc.ankr.com/base_goerli',
     // local: 'http://localhost:8545',
-}
+};
 
 export type AllowedNetwork = keyof typeof networkRPC;
