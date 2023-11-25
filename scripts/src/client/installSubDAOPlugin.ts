@@ -78,7 +78,7 @@ export async function installSubDaoPlugin(
   const parentDaoDetails = await client.methods.getDao(parentDAO);
   if (!parentDaoDetails) throw new Error("DAO not found");
 
-  const cbildDAOAddress = childDaoDetails.address;
+  const childDAOAddress = childDaoDetails.address;
   const parentDaoAddress = parentDaoDetails.address;
   const votingPlugin = childDaoDetails.plugins.filter((e) =>
     [TOKEN_VOTING_PLUGIN_ID, MULTISIG_PLUGIN_ID].includes(e.id)
@@ -90,7 +90,7 @@ export async function installSubDaoPlugin(
   const votingPluginAddress = votingPlugin[0].instanceAddress;
 
   log("Deployer wallet address: ", deployer.address);
-  log("Child DAO Contract: ", cbildDAOAddress);
+  log("Child DAO Contract: ", childDAOAddress);
   log("Parent DAO Contract: ", parentDaoAddress);
   log("Voting Plugin address: ", votingPluginAddress);
   log("Child DAO Plugins", childDaoDetails.plugins);
@@ -112,11 +112,11 @@ export async function installSubDaoPlugin(
     ["address"],
     [parentDaoAddress]
   );
-  const setupParams = [cbildDAOAddress, data];
+  const setupParams = [childDAOAddress, data];
 
   // 1c. ***Prepare the installation***
   const prepareInstallParams: PrepareInstallationParams = {
-    daoAddressOrEns: cbildDAOAddress,
+    daoAddressOrEns: childDAOAddress,
     pluginRepo: subDAORepoAddress,
     installationAbi: setupAbiMetadata,
     installationParams: setupParams,
@@ -148,7 +148,7 @@ export async function installSubDaoPlugin(
   // [1] Installs the plugin,
   // [2] Removes the PSP permission to install
   const daoActions: DaoAction[] = client.encoding.applyInstallationAction(
-    cbildDAOAddress,
+    childDAOAddress,
     installdata
   );
 
