@@ -9,15 +9,17 @@ import { VoteValues } from "@aragon/sdk-client";
 import { Client, TokenVotingClient } from "../lib/sdk";
 import { getWallet } from "../lib/helpers";
 import { AllowedNetwork } from "../lib/constants";
+import { ethers } from 'ethers';
+
 const log = console.log;
 
 // ======================= *** CONFIG *** =====================
 
 // ***NOTE***: The configured Private Key must be Able to create proposals on the DAO
-const DAO_ADDRESS_OR_ENS = "testtesttesttest.dao.eth";
+const childDAOAddress = "daoyeman.dao.eth";
 const NETWORK: AllowedNetwork = "goerli";
-const adminRepoAddress = '0x8F9EB326Eca65E0EFd5D31e522c39204923088Af'
-//0x0c90683d2Ac76F877D0CA88d7d8D6f95Bdfad762
+const adminRepoAddress = '0x44B7C01C5101bb94B4fA9A7f72c42bcAA87979Ca'
+
 // ============================================================
 // 0. Setup: Get all the addresses and contracts
 // ============================================================
@@ -30,7 +32,7 @@ const tokenVotingClient = TokenVotingClient(NETWORK);
 // const adminRepoAddress = activeContractsList[NETWORK]["admin-repo"];
 
 // get the dao details
-const daoDetails = await client.methods.getDao(DAO_ADDRESS_OR_ENS);
+const daoDetails = await client.methods.getDao(childDAOAddress);
 if (!daoDetails) throw new Error("DAO not found");
 
 const DAO_ADDRESS = daoDetails.address;
@@ -38,6 +40,7 @@ const VOTING_APP_ADDRESS = daoDetails.plugins[0].instanceAddress;
 
 log("DAO Contract: ", DAO_ADDRESS);
 log("Voting Plugin: ", VOTING_APP_ADDRESS);
+log(daoDetails.plugins)
 
 // ==============================================================
 // 1. PrepareInstallation: Using the PluginSetupProcessor, prepare the installation
@@ -50,7 +53,7 @@ log("Voting Plugin: ", VOTING_APP_ADDRESS);
 const adminSetupAbiMetadata: MetadataAbiInput[] = [
     {
         "internalType": "address",
-        "name": "_dao",
+        "name": "_childDAO",
         "type": "address",
         description:"description"
     },
@@ -63,7 +66,11 @@ const adminSetupAbiMetadata: MetadataAbiInput[] = [
 ];
 
 // 1b. ***Prepare the installation params***
-const adminSetupParams = ["0xc558355df029790ca55a50bdcf38c8b4b3500015","0x"];
+const adminAddress = ethers.utils.defaultAbiCoder.encode(
+    ['address'],
+    ["0x796f24671a61431851411864d8abd1cb9b3d60f6"]
+);
+const adminSetupParams = [DAO_ADDRESS, adminAddress];
 
 // 1c. ***Prepare the installation***
 const prepareInstallParams: PrepareInstallationParams = {
