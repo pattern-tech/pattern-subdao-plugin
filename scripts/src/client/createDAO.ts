@@ -213,7 +213,7 @@ const daoActions: DaoAction[] =[
     }
 ];
 
-log(daoActions)
+log("daoActions",daoActions)
 
 
 const createProposalSteps = tokenVotingClient.methods.createProposal({
