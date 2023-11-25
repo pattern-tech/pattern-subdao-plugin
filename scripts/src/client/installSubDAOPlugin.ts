@@ -5,8 +5,8 @@ import {
   MetadataAbiInput,
   PrepareInstallationParams,
 } from "@aragon/sdk-client-common";
-import { VoteValues } from "@aragon/sdk-client";
-import { Client, TokenVotingClient } from "../lib/sdk";
+import { ProposalCreationStepValue, VoteValues } from "@aragon/sdk-client";
+import { Client, TokenVotingClient, MultisigClient } from "../lib/sdk";
 import { getWallet } from "../lib/helpers";
 import { AllowedNetwork, RepoAddress } from "../lib/constants";
 import { ethers } from "ethers";
@@ -16,6 +16,10 @@ const log = console.log;
 import { parse, ArgumentConfig } from "ts-command-line-args";
 
 const meta = import.meta as any;
+
+const TOKEN_VOTING_PLUGIN_ID = "token-voting.plugin.dao.eth"
+const MULTISIG_PLUGIN_ID = "multisig.plugin.dao.eth"
+
 
 if (meta.main) {
   // Define the configuration for the command-line arguments
@@ -66,6 +70,7 @@ export async function installSubDaoPlugin(
   const deployer = getWallet();
   const client = Client(network);
   const tokenVotingClient = TokenVotingClient(network);
+  const multisigClient = MultisigClient(network);
 
   // get the dao details
   const childDaoDetails = await client.methods.getDao(childDAO);
@@ -75,14 +80,16 @@ export async function installSubDaoPlugin(
 
   const cbildDAOAddress = childDaoDetails.address;
   const parentDaoAddress = parentDaoDetails.address;
-  const votingPlugin = childDaoDetails.plugins.filter(
-    (e) => ["token-voting.plugin.dao.eth", "multisig.plugin.dao.eth"].includes(e.id)
+  const votingPlugin = childDaoDetails.plugins.filter((e) =>
+    [TOKEN_VOTING_PLUGIN_ID, MULTISIG_PLUGIN_ID].includes(e.id)
   );
 
-  if (votingPlugin.length === 0) throw new Error("Can not find the voting plugin");
+  if (votingPlugin.length === 0)
+    throw new Error("Can not find the voting plugin");
 
-  const votingPluginAddress = votingPlugin[0].instanceAddress
-  
+  const votingPluginAddress = votingPlugin[0].instanceAddress;
+
+  log("Deployer wallet address: ", deployer.address);
   log("Child DAO Contract: ", cbildDAOAddress);
   log("Parent DAO Contract: ", parentDaoAddress);
   log("Voting Plugin address: ", votingPluginAddress);
@@ -146,7 +153,7 @@ export async function installSubDaoPlugin(
   );
 
   // 2b. ***Pin the metadata***
-  const metadataUri: string = await tokenVotingClient.methods.pinMetadata({
+  const proposalMetadata = {
     title: "Sub-DAO plugin installation",
     summary: "Granting parent DAO execution permission on child dao",
     description: `By installing this plugin, the plugin will grant the execution access of child dao (${childDAO}) to parent dao (${parentDAO})`,
@@ -161,20 +168,46 @@ export async function installSubDaoPlugin(
         "https://assets-global.website-files.com/65410dc30116ce87ecbef5cd/654f75bc7db9aa282ca87e21_Logo%2Btext%20White.png",
       logo: "https://assets-global.website-files.com/65410dc30116ce87ecbef5cd/654f75bc7db9aa282ca87e21_Logo%2Btext%20White.png",
     },
-  });
+  };
 
-  // 2c. ***Create the proposal***
-  // this returns an export generator that will create the proposal
-  const createProposalSteps = tokenVotingClient.methods.createProposal({
-    metadataUri,
-    pluginAddress: votingPluginAddress,
-    actions: daoActions,
-    creatorVote: VoteValues.YES, // creator votes yes
-    executeOnPass: true, // execute on pass
-    startDate: new Date(0), // Start immediately
-    endDate: new Date(0), // uses minimum voting duration
-  });
 
+  if (votingPlugin[0].id === TOKEN_VOTING_PLUGIN_ID) {
+    const metadataUri: string = await tokenVotingClient.methods.pinMetadata(
+      proposalMetadata
+    );
+    // 2c. ***Create the proposal***
+    // this returns an export generator that will create the proposal
+    const createProposalSteps = tokenVotingClient.methods.createProposal({
+      metadataUri,
+      pluginAddress: votingPluginAddress,
+      actions: daoActions,
+      creatorVote: VoteValues.YES, // creator votes yes
+      executeOnPass: true, // execute on pass
+      startDate: new Date(0), // Start immediately
+      endDate: new Date(0), // uses minimum voting duration
+    });
+    await iterateSteps(createProposalSteps);
+  } else if (votingPlugin[0].id === MULTISIG_PLUGIN_ID) {
+    const metadataUri: string = await multisigClient.methods.pinMetadata(
+      proposalMetadata
+    );
+    const createProposalSteps = multisigClient.methods.createProposal({
+      metadataUri,
+      pluginAddress: votingPluginAddress,
+      actions: daoActions,
+      approve: true,
+      tryExecution: true
+      ,
+      startDate: new Date(0), // Start immediately
+      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)), // uses minimum voting duration
+    });
+    await iterateSteps(createProposalSteps);
+  }
+}
+
+async function iterateSteps(
+  createProposalSteps: AsyncGenerator<ProposalCreationStepValue, any, unknown>
+) {
   // 2d. ***Iterate through the steps***
   const createProposalStep1Value = await (
     await createProposalSteps.next()
