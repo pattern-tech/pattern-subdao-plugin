@@ -5,6 +5,10 @@ import {
     TokenVotingClient,
     TokenVotingPluginInstall,
     VotingMode,
+    MultisigClient,
+    MultisigPluginSettings,
+    MultisigVotingSettings
+
 } from '@aragon/sdk-client';
 import { GasFeeEstimation } from '@aragon/sdk-client-common';
 import { Client } from '../lib/sdk';
@@ -50,13 +54,23 @@ const tokenVotingPluginInstallParams: TokenVotingPluginInstall = {
     },
 };
 
+const multisigPluginSettings :MultisigPluginSettings={
+    members:['0x1A6cD894065F36bb921e97cE286CB83c3fd14cE0'],
+    votingSettings:{
+        minApprovals: 1,
+        onlyListed: true,
+    }
+}
+
 // Creates a TokenVoting plugin client with the parameteres defined above (with an existing token).
 const tokenVotingInstallItem = TokenVotingClient.encoding.getPluginInstallItem(tokenVotingPluginInstallParams, NETWORK);
 
+const multisigInstallItem =MultisigClient.encoding.getPluginInstallItem(multisigPluginSettings,NETWORK)
+
 const createDaoParams: CreateDaoParams = {
     metadataUri,
-    ensSubdomain: 'my-org-4i891237498', // my-org.dao.eth
-    plugins: [tokenVotingInstallItem], // plugin array cannot be empty or the transaction will fail. you need at least one governance mechanism to create your DAO.
+    ensSubdomain: `my-org-4i89123234298-${new Date().getTime()}`, // my-org.dao.eth
+    plugins: [tokenVotingInstallItem,multisigInstallItem], // plugin array cannot be empty or the transaction will fail. you need at least one governance mechanism to create your DAO.
 };
 
 // Estimate how much gas the transaction will cost.
