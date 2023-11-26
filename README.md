@@ -34,9 +34,9 @@
 4. **Run Plugin Installation:**
    Execute the plugin installation command with the required parameters.
    ```bash
-   bun plugininstall -n [NETWORK] -c [CHILD_DAO_ADDRESS] -p [PARENT_DAO_ADDRESS]
+   bun plugininstall -n [NETWORK] -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS]
    ```
-   Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS]`, and `[PARENT_DAO_ADDRESS]` with the appropriate values for your setup.
+   Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, and `[PARENT_DAO_ADDRESS_OR_ENS]` with the appropriate values for your setup.
 
 ## 📚 How to Use 
 To understand how to interact with the contracts, navigate to the `./scripts/tests` directory. Here, you will find examples and tests for each of the following functionalities:
