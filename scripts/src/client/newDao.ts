@@ -5,14 +5,66 @@ import {
     TokenVotingClient,
     TokenVotingPluginInstall,
     VotingMode,
+    MultisigClient,
+    MultisigPluginSettings,
+
 } from '@aragon/sdk-client';
-import { GasFeeEstimation } from '@aragon/sdk-client-common';
+import {GasFeeEstimation, PluginInstallItem} from '@aragon/sdk-client-common';
 import { Client } from '../lib/sdk';
+import {AllowedNetwork} from "../lib/constants";
 
-// Instantiate the general purpose client from the Aragon OSx SDK context.
-const NETWORK = 'goerli';
-const client = Client(NETWORK);
 
+export async function createNewDAO(network:AllowedNetwork,metadata:DaoMetadata, pluginParams: (TokenVotingPluginInstall | MultisigPluginSettings) [],ensSubdomain:string) {
+    const client = Client(network);
+    const metadataUri = await client.methods.pinMetadata(metadata);
+    const plugins: PluginInstallItem[]=[];
+    for (const pluginParam of pluginParams) {
+        if ('newToken' in pluginParam  || 'useToken' in pluginParam ) {
+            console.log("TokenVotingPluginInstall")
+            plugins.push(TokenVotingClient.encoding.getPluginInstallItem(pluginParam, network));
+        }
+        else if ('members' in pluginParam ) {
+            console.log("MultisigPluginSettings")
+            plugins.push(MultisigClient.encoding.getPluginInstallItem(pluginParam,network))
+        }
+    }
+    const createDaoParams: CreateDaoParams = {
+        metadataUri,
+        ensSubdomain: ensSubdomain, // my-org.dao.eth
+        plugins: plugins, // plugin array cannot be empty or the transaction will fail. you need at least one governance mechanism to create your DAO.
+    };
+    const estimatedGas: GasFeeEstimation = await client.estimation.createDao(createDaoParams);
+    console.log({ avg: estimatedGas.average, maximum: estimatedGas.max });
+
+    // Create the DAO.
+    const steps = client.methods.createDao(createDaoParams);
+
+
+    for await (const step of steps) {
+        try {
+            switch (step.key) {
+                case DaoCreationSteps.CREATING:
+                    console.log({ txHash: step.txHash });
+                    break;
+                case DaoCreationSteps.DONE:
+                    console.log({
+                        daoAddress: step.address,
+                        pluginAddresses: step.pluginAddresses,
+                    });
+                    return {
+                        daoAddress: step.address,
+                        pluginAddresses: step.pluginAddresses,
+                    };
+                    break;
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+}
+
+
+/*
 const metadata: DaoMetadata = {
     name: 'My DAO',
     description: 'This is a description',
@@ -25,7 +77,7 @@ const metadata: DaoMetadata = {
     ],
 };
 
-const metadataUri = await client.methods.pinMetadata(metadata);
+
 
 const tokenVotingPluginInstallParams: TokenVotingPluginInstall = {
     votingSettings: {
@@ -50,36 +102,11 @@ const tokenVotingPluginInstallParams: TokenVotingPluginInstall = {
     },
 };
 
-// Creates a TokenVoting plugin client with the parameteres defined above (with an existing token).
-const tokenVotingInstallItem = TokenVotingClient.encoding.getPluginInstallItem(tokenVotingPluginInstallParams, NETWORK);
-
-const createDaoParams: CreateDaoParams = {
-    metadataUri,
-    ensSubdomain: 'my-org-4i891237498', // my-org.dao.eth
-    plugins: [tokenVotingInstallItem], // plugin array cannot be empty or the transaction will fail. you need at least one governance mechanism to create your DAO.
-};
-
-// Estimate how much gas the transaction will cost.
-const estimatedGas: GasFeeEstimation = await client.estimation.createDao(createDaoParams);
-console.log({ avg: estimatedGas.average, maximum: estimatedGas.max });
-
-// Create the DAO.
-const steps = client.methods.createDao(createDaoParams);
-
-for await (const step of steps) {
-    try {
-        switch (step.key) {
-            case DaoCreationSteps.CREATING:
-                console.log({ txHash: step.txHash });
-                break;
-            case DaoCreationSteps.DONE:
-                console.log({
-                    daoAddress: step.address,
-                    pluginAddresses: step.pluginAddresses,
-                });
-                break;
-        }
-    } catch (err) {
-        console.error(err);
+const multisigPluginSettings :MultisigPluginSettings={
+    members:['0x1A6cD894065F36bb921e97cE286CB83c3fd14cE0'],
+    votingSettings:{
+        minApprovals: 1,
+        onlyListed: true,
     }
 }
+*/
