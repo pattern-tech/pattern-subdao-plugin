@@ -55,6 +55,7 @@ if (meta.main) {
     installSubDaoPlugin(childDAO, parentDAO, network);
 }
 
+
 export async function installSubDaoPlugin(childDAO: string, parentDAO: string, network: AllowedNetwork) {
     // ============================================================
     // 0. Setup: Get all the addresses and contracts
@@ -74,13 +75,7 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
 
     const childDAOAddress = childDaoDetails.address;
     const parentDaoAddress = parentDaoDetails.address;
-    const votingPlugin = childDaoDetails.plugins.filter((e) =>
-        [TOKEN_VOTING_PLUGIN_ID, MULTISIG_PLUGIN_ID].includes(e.id)
-    );
-
-    if (votingPlugin.length === 0) throw new Error('Can not find the voting plugin');
-
-    const votingPluginAddress = votingPlugin[0].instanceAddress;
+    const {votingPluginAddress, votingPluginType} = getVotingPluginAddress(childDaoDetails);
 
     log('Deployer wallet address: ', deployer.address);
     log('Child DAO Contract: ', childDAOAddress);
@@ -97,11 +92,18 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
     // 1a. ***Prepare the installation metadata***
     // This is the metadata that is needed to initialize the plugin. Its the the same thing that is encoded in the setup contract
     // https://devs.aragon.org/docs/osx/how-to-guides/plugin-development/publication/metadata
-    const setupAbiMetadata: MetadataAbiInput[] = metadata.pluginSetup.prepareInstallation.inputs;
+    const setupAbiMetadata: MetadataAbiInput[] = [
+        {
+            "internalType": "address",
+            "name": "_data",
+            "type": "address",
+            "description": "parent contract address"
+        }
+    ];
 
     // 1b. ***Prepare the installation params***
-    const data = ethers.utils.defaultAbiCoder.encode(['address'], [parentDaoAddress]);
-    const setupParams = [childDAOAddress, data];
+    // const data = ethers.utils.defaultAbiCoder.encode(['address'], [parentDaoAddress]);
+    const setupParams = [parentDaoAddress];
 
     // 1c. ***Prepare the installation***
     const prepareInstallParams: PrepareInstallationParams = {
@@ -122,9 +124,10 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
 
     const prepareInstallStep2 = await (await prepareSteps.next()).value;
     log('Installation Data: ', prepareInstallStep2);
-
+    
     // this is already an object that has all the data we need to apply the installation. it also has the Key from the iterator but we dont need that
     const installdata = prepareInstallStep2 satisfies ApplyInstallationParams;
+    log('SubDAO plugin address', installdata.pluginAddress)
 
     // ==============================================================
     // 2. Create Proposal to Apply install: Using the PluginSetupProcessor, use the SDK to get the set of actions and create a proposal
@@ -155,7 +158,7 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
         },
     };
 
-    if (votingPlugin[0].id === TOKEN_VOTING_PLUGIN_ID) {
+    if (votingPluginType === TOKEN_VOTING_PLUGIN_ID) {
         const metadataUri: string = await tokenVotingClient.methods.pinMetadata(proposalMetadata);
         // 2c. ***Create the proposal***
         // this returns an export generator that will create the proposal
@@ -169,7 +172,7 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
             endDate: new Date(0), // uses minimum voting duration
         });
         await iterateSteps(createProposalSteps);
-    } else if (votingPlugin[0].id === MULTISIG_PLUGIN_ID) {
+    } else if (votingPluginType === MULTISIG_PLUGIN_ID) {
         const metadataUri: string = await multisigClient.methods.pinMetadata(proposalMetadata);
         const createProposalSteps = multisigClient.methods.createProposal({
             metadataUri,
@@ -191,4 +194,18 @@ async function iterateSteps(createProposalSteps: AsyncGenerator<ProposalCreation
 
     const createProposalStep2Value = await (await createProposalSteps.next()).value;
     log('Proposal ID: ', await createProposalStep2Value.proposalId);
+}
+
+export function getVotingPluginAddress(daoDetails){
+    const votingPlugin = daoDetails.plugins.filter((e: { id: string; }) =>
+        [TOKEN_VOTING_PLUGIN_ID, MULTISIG_PLUGIN_ID].includes(e.id)
+    );
+
+    if (votingPlugin.length === 0) throw new Error('Can not find the voting plugin');
+
+    const votingPluginAddress = votingPlugin[0].instanceAddress;
+    return {
+        votingPluginAddress: votingPlugin[0].instanceAddress,
+        votingPluginType: votingPlugin[0].id
+    }
 }

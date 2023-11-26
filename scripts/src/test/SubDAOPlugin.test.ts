@@ -13,52 +13,48 @@ import { AllowedNetwork } from '../lib/constants';
 const log = console.log;
 
 import { ethers } from 'ethers';
+import { hexToBytes } from './../lib/helpers';
+import { getVotingPluginAddress } from './../client/installSubDAOPlugin';
 
-function hexStringToUint8Array(hexString: string): Uint8Array {
-    // Convert hex string to array of bytes
-    const bytes: number[] = hexString.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
-
-    // Create Uint8Array from the array of bytes
-    return new Uint8Array(bytes);
-}
 beforeAll(() => {
     // setup tests
 });
 
 
-describe("Testing SubDAO plugin", () =>  {
-    test("Add new multisig admin", async() => {
-        //Parentdao -> pluginadmin-> childdao ->multisig
-        const DAO_ADDRESS_OR_ENS = "parentdaotest.dao.eth";
-        const NETWORK: AllowedNetwork = "goerli";
+describe('Testing SubDAO plugin', () => {
+    test('Add new multisig admin', async () => {
+        const parent = 'parentdao.dao.eth'; // parent
+        const child = 'mehrdadchilddao.dao.eth';
+        const NETWORK: AllowedNetwork = 'goerli';
         const deployer = getWallet();
         const client = Client(NETWORK);
         const tokenVotingClient = TokenVotingClient(NETWORK);
-        const daoDetails = await client.methods.getDao(DAO_ADDRESS_OR_ENS);
-        if (!daoDetails) throw new Error('DAO not found');
 
-        const DAO_ADDRESS = daoDetails.address;
-        const VOTING_APP_ADDRESS = daoDetails.plugins[0].instanceAddress;
+        const parentDaoDetails = await client.methods.getDao(parent);
+        if (!parentDaoDetails) throw new Error('DAO not found');
+        const childDaoDetails = await client.methods.getDao(child);
+        if (!childDaoDetails) throw new Error('DAO not found');
 
-        log('DAO Contract: ', DAO_ADDRESS);
-        log('Voting Plugin: ', VOTING_APP_ADDRESS);
+        const subdaoPluginContractAddress = '0xaC80199F6392609c58b6A4AF22a73b3EaBE37dcc';
+        const toBeAddedApprovers = ['0x00f3eE67e37dE62b8122EC512B3eB484f9C947cF'];
 
-        const metadataUri: string = await tokenVotingClient.methods.pinMetadata({
-            title: 'Create sub dAO',
-            summary: 'This is a test proposal',
-            description: 'This is the description of a long test proposal',
-            resources: [
-                {
-                    url: 'https://thforumurl.com',
-                    name: 'Forum',
-                },
-            ],
-            media: {
-                header: 'https://fileserver.com/header.png',
-                logo: 'https://fileserver.com/logo.png',
-            },
-        });
+        const childContractAddress = childDaoDetails.address;
 
+        const parentContractAddress = parentDaoDetails.address;
+        const { votingPluginAddress: parentVotingPluginContractAddress, votingPluginType: parentVotingPluginType } =
+            getVotingPluginAddress(parentDaoDetails);
+        const { votingPluginAddress: childVotingPluginContractAddress, votingPluginType: childVotingPluginType } =
+            getVotingPluginAddress(childDaoDetails);
+
+        log('Parent DAO Contract: ', parentContractAddress);
+        log('Parent Voting Plugin: ', parentVotingPluginContractAddress);
+        log('Parent Voting type: ', parentVotingPluginType);
+        log('Child DAO Contract: ', childContractAddress);
+        log('Child Voting Plugin: ', childVotingPluginContractAddress);
+        log('Child Voting type: ', childVotingPluginType);
+        log('SubDAO plugin address: ', subdaoPluginContractAddress);
+        log('New approvers we want to add: ', toBeAddedApprovers)
+        log('Child DAO plugins: ', childDaoDetails.plugins)
         //addAddresses
         const multisigABI = [
             {
@@ -75,140 +71,212 @@ describe("Testing SubDAO plugin", () =>  {
             },
         ];
 
-        const iface2 = new ethers.utils.Interface(multisigABI);
+        const multisigPluginInterface = new ethers.utils.Interface(multisigABI);
         //TODO
-
-        const data2 = iface2.encodeFunctionData('addAddresses', [['0x1A6cD894065F36bb921e97cE286CB83c3fd14cE0']]);
-        log("data2",data2)
-
+        const multisigUpdateData = multisigPluginInterface.encodeFunctionData('addAddresses', [toBeAddedApprovers]);
 
         //TODO
-        const daoActions: DaoAction[] = [
+        const updateVotingSettingDaoAction: DaoAction[] = [
             {
-
-                to: "0x67bcd53daf9f8851c4bea1d5dd34c5126bf9a067",//multidig address
-
+                to: childVotingPluginContractAddress, //multidig address
                 value: BigInt(0),
-                data: hexStringToUint8Array(data2.slice(2)),
+                data: hexToBytes(multisigUpdateData),
             },
         ];
-        const daoABI = [
+        const subdaoPluginAbi = [
             {
-                type: 'function',
-                name: 'execute',
                 inputs: [
                     {
-                        type: 'bytes32',
-                        name: '_callId',
+                        internalType: 'address',
+                        name: 'dao',
+                        type: 'address',
                     },
                     {
-                        type: 'tuple[]',
-                        name: '_actions',
+                        internalType: 'address',
+                        name: 'where',
+                        type: 'address',
+                    },
+                    {
+                        internalType: 'address',
+                        name: 'who',
+                        type: 'address',
+                    },
+                    {
+                        internalType: 'bytes32',
+                        name: 'permissionId',
+                        type: 'bytes32',
+                    },
+                ],
+                name: 'DaoUnauthorized',
+                type: 'error',
+            },
+            {
+                anonymous: false,
+                inputs: [
+                    {
+                        indexed: false,
+                        internalType: 'uint8',
+                        name: 'version',
+                        type: 'uint8',
+                    },
+                ],
+                name: 'Initialized',
+                type: 'event',
+            },
+            {
+                inputs: [],
+                name: 'PARENT_PERMISSION_ID',
+                outputs: [
+                    {
+                        internalType: 'bytes32',
+                        name: '',
+                        type: 'bytes32',
+                    },
+                ],
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                inputs: [],
+                name: 'dao',
+                outputs: [
+                    {
+                        internalType: 'contract IDAO',
+                        name: '',
+                        type: 'address',
+                    },
+                ],
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                inputs: [
+                    {
                         components: [
                             {
-                                type: 'address',
+                                internalType: 'address',
                                 name: 'to',
+                                type: 'address',
                             },
                             {
-                                type: 'uint256',
+                                internalType: 'uint256',
                                 name: 'value',
+                                type: 'uint256',
                             },
                             {
-                                type: 'bytes',
+                                internalType: 'bytes',
                                 name: 'data',
+                                type: 'bytes',
                             },
                         ],
+                        internalType: 'struct IDAO.Action[]',
+                        name: '_actions',
+                        type: 'tuple[]',
+                    },
+                ],
+                name: 'execute',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+            },
+            {
+                inputs: [
+                    {
+                        internalType: 'contract IDAO',
+                        name: '_childDAO',
+                        type: 'address',
                     },
                     {
-                        type: 'uint256',
-                        name: '_allowFailureMap',
+                        internalType: 'address',
+                        name: '_parentDAO',
+                        type: 'address',
                     },
                 ],
-                stateMutability: 'nonpayable', // specify the stateMutability property
+                name: 'initialize',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
+            },
+            {
+                inputs: [],
+                name: 'parentDAO',
                 outputs: [
-                    { type: 'bytes[]', name: 'execResults' }, // add the daoAddress output
-                    { type: 'uint256', name: 'failureMap' },
+                    {
+                        internalType: 'address',
+                        name: '',
+                        type: 'address',
+                    },
                 ],
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                inputs: [],
+                name: 'pluginType',
+                outputs: [
+                    {
+                        internalType: 'enum IPlugin.PluginType',
+                        name: '',
+                        type: 'uint8',
+                    },
+                ],
+                stateMutability: 'pure',
+                type: 'function',
+            },
+            {
+                inputs: [
+                    {
+                        internalType: 'bytes4',
+                        name: '_interfaceId',
+                        type: 'bytes4',
+                    },
+                ],
+                name: 'supportsInterface',
+                outputs: [
+                    {
+                        internalType: 'bool',
+                        name: '',
+                        type: 'bool',
+                    },
+                ],
+                stateMutability: 'view',
+                type: 'function',
             },
         ];
 
-        const iface = new ethers.utils.Interface(daoABI);
 
-        const data = iface.encodeFunctionData('execute', ['0x0000000000000000000000000000000000000000000000000000000000000000', daoActions,0]);
-        log("data",data)
-
-
-
-
+        const daoInterface = new ethers.utils.Interface(subdaoPluginAbi);
+        const data = daoInterface.encodeFunctionData('execute', [updateVotingSettingDaoAction]);
 
         //TODO
         const daoActions1: DaoAction[] = [
             {
-
-                to: "0x2aaf142cd655380283cec48725ab5d99e2302dea",//child
+                to: subdaoPluginContractAddress,
                 value: BigInt(0),
-                data: hexStringToUint8Array(data.slice(2)), //update_multisig
+                data: hexToBytes(data), //update_multisig
             },
         ];
 
 
-        const SUBDAOPLUGINABI = [
-            {
-                type: 'function',
-                name: 'execute',
-                inputs: [
-                    {
-                        type: 'tuple[]',
-                        name: '_actions',
-                        components: [
-                            {
-                                type: 'address',
-                                name: 'to',
-                            },
-                            {
-                                type: 'uint256',
-                                name: 'value',
-                            },
-                            {
-                                type: 'bytes',
-                                name: 'data',
-                            },
-                        ],
-
-                    },
-                ],
-                stateMutability: 'nonpayable', // specify the stateMutability property
-                outputs: [
-                ],
+        const metadataUri: string = await tokenVotingClient.methods.pinMetadata({
+            title: 'Add multisig address',
+            summary: 'This is a test proposal',
+            description: 'This is the description of a long test proposal',
+            resources: [
+                {
+                    url: 'https://thforumurl.com',
+                    name: 'Forum',
+                },
+            ],
+            media: {
+                header: 'https://fileserver.com/header.png',
+                logo: 'https://fileserver.com/logo.png',
             },
-        ];
-
-        const iface3 = new ethers.utils.Interface(SUBDAOPLUGINABI);
-        const data3 = iface3.encodeFunctionData('execute', [ daoActions1]);
-
-        //Todo
-        const daoActions2: DaoAction[] =[
-            {
-                to: "0xd9d36e671Ee83e779352DB1E4a4c87C0237d197d",//plugin admin
-                value: BigInt(0),
-                data: hexStringToUint8Array(data3.slice(2)),
-            }
-        ];
-
-
-
-
-
-
-
-
-
-
-
+        });
         const createProposalSteps = tokenVotingClient.methods.createProposal({
             metadataUri,
-            pluginAddress: VOTING_APP_ADDRESS,
-            actions: daoActions2,
+            pluginAddress: parentVotingPluginContractAddress,
+            actions: daoActions1,
             creatorVote: VoteValues.YES, // creator votes yes
             executeOnPass: true, // execute on pass
             startDate: new Date(0), // Start immediately
