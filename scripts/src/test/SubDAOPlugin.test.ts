@@ -25,10 +25,12 @@ beforeAll(() => {
     // setup tests
 });
 
-describe('Testing SubDAO plugin', () => {
-    test('Add new multisig admin', async () => {
-        const DAO_ADDRESS_OR_ENS = 'testtesttesttest.dao.eth';
-        const NETWORK: AllowedNetwork = 'goerli';
+
+describe("Testing SubDAO plugin", () =>  {
+    test("Add new multisig admin", async() => {
+        //Parentdao -> pluginadmin-> childdao ->multisig
+        const DAO_ADDRESS_OR_ENS = "parentdaotest.dao.eth";
+        const NETWORK: AllowedNetwork = "goerli";
         const deployer = getWallet();
         const client = Client(NETWORK);
         const tokenVotingClient = TokenVotingClient(NETWORK);
@@ -75,12 +77,17 @@ describe('Testing SubDAO plugin', () => {
 
         const iface2 = new ethers.utils.Interface(multisigABI);
         //TODO
-        const data2 = iface2.encodeFunctionData('addAddresses', ['address']);
+
+        const data2 = iface2.encodeFunctionData('addAddresses', [['0x1A6cD894065F36bb921e97cE286CB83c3fd14cE0']]);
+        log("data2",data2)
+
 
         //TODO
         const daoActions: DaoAction[] = [
             {
-                to: '0x9addb6f7c29fed19cfca4e367afc656c7d5b8856', //multidig address
+
+                to: "0x67bcd53daf9f8851c4bea1d5dd34c5126bf9a067",//multidig address
+
                 value: BigInt(0),
                 data: hexStringToUint8Array(data2.slice(2)),
             },
@@ -126,21 +133,82 @@ describe('Testing SubDAO plugin', () => {
         ];
 
         const iface = new ethers.utils.Interface(daoABI);
-        const data = iface.encodeFunctionData('execute', ['0x0', daoActions, 0]);
+
+        const data = iface.encodeFunctionData('execute', ['0x0000000000000000000000000000000000000000000000000000000000000000', daoActions,0]);
+        log("data",data)
+
+
+
+
 
         //TODO
         const daoActions1: DaoAction[] = [
             {
-                to: '0xc558355df029790ca55a50bdcf38c8b4b3500015',
+
+                to: "0x2aaf142cd655380283cec48725ab5d99e2302dea",//child
                 value: BigInt(0),
                 data: hexStringToUint8Array(data.slice(2)), //update_multisig
             },
         ];
 
+
+        const SUBDAOPLUGINABI = [
+            {
+                type: 'function',
+                name: 'execute',
+                inputs: [
+                    {
+                        type: 'tuple[]',
+                        name: '_actions',
+                        components: [
+                            {
+                                type: 'address',
+                                name: 'to',
+                            },
+                            {
+                                type: 'uint256',
+                                name: 'value',
+                            },
+                            {
+                                type: 'bytes',
+                                name: 'data',
+                            },
+                        ],
+
+                    },
+                ],
+                stateMutability: 'nonpayable', // specify the stateMutability property
+                outputs: [
+                ],
+            },
+        ];
+
+        const iface3 = new ethers.utils.Interface(SUBDAOPLUGINABI);
+        const data3 = iface3.encodeFunctionData('execute', [ daoActions1]);
+
+        //Todo
+        const daoActions2: DaoAction[] =[
+            {
+                to: "0xd9d36e671Ee83e779352DB1E4a4c87C0237d197d",//plugin admin
+                value: BigInt(0),
+                data: hexStringToUint8Array(data3.slice(2)),
+            }
+        ];
+
+
+
+
+
+
+
+
+
+
+
         const createProposalSteps = tokenVotingClient.methods.createProposal({
             metadataUri,
             pluginAddress: VOTING_APP_ADDRESS,
-            actions: daoActions1,
+            actions: daoActions2,
             creatorVote: VoteValues.YES, // creator votes yes
             executeOnPass: true, // execute on pass
             startDate: new Date(0), // Start immediately
@@ -151,6 +219,8 @@ describe('Testing SubDAO plugin', () => {
         log('Transaction Hash: ', await createProposalStep1Value.txHash);
 
         const createProposalStep2Value = await (await createProposalSteps.next()).value;
-        log('Proposal ID: ', await createProposalStep2Value.proposalId);
-    }, 100000);
+
+        log("Proposal ID: ", await createProposalStep2Value.proposalId);
+
+    },1000000);
 });
