@@ -17,8 +17,8 @@ import { parse, ArgumentConfig } from 'ts-command-line-args';
 
 const meta = import.meta as any;
 
-const TOKEN_VOTING_PLUGIN_ID = 'token-voting.plugin.dao.eth';
-const MULTISIG_PLUGIN_ID = 'multisig.plugin.dao.eth';
+export const TOKEN_VOTING_PLUGIN_ID = 'token-voting.plugin.dao.eth';
+export const MULTISIG_PLUGIN_ID = 'multisig.plugin.dao.eth';
 
 if (meta.main) {
     // Define the configuration for the command-line arguments
@@ -187,7 +187,7 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
     }
 }
 
-async function iterateSteps(createProposalSteps: AsyncGenerator<ProposalCreationStepValue, any, unknown>) {
+export async function iterateSteps(createProposalSteps: AsyncGenerator<ProposalCreationStepValue, any, unknown>) {
     // 2d. ***Iterate through the steps***
     const createProposalStep1Value = await (await createProposalSteps.next()).value;
     log('Transaction Hash: ', await createProposalStep1Value.txHash);
