@@ -17,6 +17,7 @@
         "web3.storage": "^4.5.5"
     },
     "scripts": {
-        "plugininstall": "bun src/client/installSubDAOPlugin.ts"
+        "plugininstall": "bun src/client/installSubDAOPlugin.ts",
+        "changevotingsetting": "bun src/client/changeVotingSetting.ts"
     }
 }
