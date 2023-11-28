@@ -10,13 +10,13 @@ import {
     TOKEN_VOTING_PLUGIN_ID
 } from "./installSubDAOPlugin";
 import {
-    DAOABI,
+    DAO_ABI,
     getABIEntry,
     GovernanceERC20ABI,
-    MULTISIGABI,
+    MULTISIG_ABI,
     queryABIEntry,
-    SUBDAOADMINABI,
-    TOKENVOTINGABI
+    SUB_DAO_ADMIN_ABI,
+    TOKEN_VOTING_ABI
 } from '../lib/abis'
 import {getWallet, hexToBytes} from "../lib/helpers";
 import {ethers} from "ethers";
@@ -58,7 +58,7 @@ export class ChangeVotingSettingClient {
 
     private async getVotingToken(){
         const deployer=getWallet();
-        const Contract=this.connectContract(deployer,this.childVotingPluginContractAddress,TOKENVOTINGABI);
+        const Contract=this.connectContract(deployer,this.childVotingPluginContractAddress,TOKEN_VOTING_ABI);
         try {
             const result = await Contract["getVotingToken"]();
             return result;
@@ -107,7 +107,7 @@ export class ChangeVotingSettingClient {
     }
     private async isMemberMultisig(address:string){
         const deployer=getWallet();
-        const multisigContract=this.connectContract(deployer,this.childVotingPluginContractAddress,MULTISIGABI);
+        const multisigContract=this.connectContract(deployer,this.childVotingPluginContractAddress,MULTISIG_ABI);
         try {
             const result = await multisigContract["isMember"](address);
             console.log('Function result:', result);
@@ -162,9 +162,9 @@ export class ChangeVotingSettingClient {
     async multisigAddAddresses(newApprovers:string[]){
         if (!this.initialized) throw new Error('This instance has not initialized yet, first call initial() method');
         if (newApprovers.length==0) throw new Error('There is not any approver to add');
-        await this.checkIsAnyRepetetive(newApprovers,MULTISIGABI);
+        await this.checkIsAnyRepetetive(newApprovers,MULTISIG_ABI);
         //porposal parent -> subdaoadminplugin -> childvoting(multisig)
-        const encodedFunctionDataMultisig=this.encodedFunctionData(MULTISIGABI,'addAddresses',[newApprovers])
+        const encodedFunctionDataMultisig=this.encodedFunctionData(MULTISIG_ABI,'addAddresses',[newApprovers])
         const updateVotingSettingDaoAction: DaoAction[] = [
             {
                 to: this.childVotingPluginContractAddress,
@@ -173,7 +173,7 @@ export class ChangeVotingSettingClient {
             },
         ];
 
-        const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUBDAOADMINABI,'execute',[updateVotingSettingDaoAction])
+        const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUB_DAO_ADMIN_ABI,'execute',[updateVotingSettingDaoAction])
         const executeSubDAOAdminDaoAction: DaoAction[] = [
             {
                 to: this.subDaoPluginAddress,
@@ -211,9 +211,9 @@ export class ChangeVotingSettingClient {
     async multisigRemoveAddresses(formerapprovers:string[]){
         if (!this.initialized) throw new Error('This instance has not initialized yet, first call initial() method');
         if (formerapprovers.length==0) throw new Error('There is not any formerapprover to remove');
-        await this.checkAreAllMember(formerapprovers,MULTISIGABI);
+        await this.checkAreAllMember(formerapprovers,MULTISIG_ABI);
         //porposal parent -> subdaoadminplugin -> childvoting(multisig)
-        const encodedFunctionDataMultisig=this.encodedFunctionData(MULTISIGABI,'removeAddresses',[formerapprovers])
+        const encodedFunctionDataMultisig=this.encodedFunctionData(MULTISIG_ABI,'removeAddresses',[formerapprovers])
         const updateVotingSettingDaoAction: DaoAction[] = [
             {
                 to: this.childVotingPluginContractAddress,
@@ -222,7 +222,7 @@ export class ChangeVotingSettingClient {
             },
         ];
 
-        const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUBDAOADMINABI,'execute',[updateVotingSettingDaoAction])
+        const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUB_DAO_ADMIN_ABI,'execute',[updateVotingSettingDaoAction])
         const executeSubDAOAdminDaoAction: DaoAction[] = [
             {
                 to: this.subDaoPluginAddress,
@@ -255,7 +255,7 @@ export class ChangeVotingSettingClient {
         if (!this.initialized) throw new Error('This instance has not initialized yet, first call initial() method');
         if (newApprovers.length==0) throw new Error('There is not any approver to add');
         if (newApprovers.length!=amounts.length) throw new Error('Length of newApprovers and howMuch must be equal ');
-        // await this.checkIsAnyRepetetive(newApprovers,TOKENVOTINGABI);
+        // await this.checkIsAnyRepetetive(newApprovers,TOKEN_VOTING_ABI);
         // parent porposal -> subdao plugin -> Token address
         const mintDaoAction: DaoAction[]=[]
         for (let indexOfApprovers in newApprovers){
@@ -267,7 +267,7 @@ export class ChangeVotingSettingClient {
             };
             mintDaoAction.push(daoActionToken);
         }
-        const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUBDAOADMINABI,'execute',[mintDaoAction])
+        const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUB_DAO_ADMIN_ABI,'execute',[mintDaoAction])
         const executeSubDAOAdminDaoAction: DaoAction[] = [
             {
                 to: this.subDaoPluginAddress,
