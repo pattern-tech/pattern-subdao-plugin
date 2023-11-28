@@ -47,11 +47,25 @@ To understand how to interact with the contracts, navigate to the `./scripts/tes
 2. **Making a DAO SubDAO of Another DAO:**
    Explore the script that shows how to designate one DAO as a subdao of another. This is useful for establishing hierarchical governance structures.
 
-3. **Add/Remove Approver from Multisig Plugin:**
+3. **Add/Remove Approver to/from Multisig Plugin:**
    Look for the test that illustrates how to add or remove an approver from the multisig plugin. This is key for managing multisig permissions and governance.
+   **<br /><br />Add Approvers to Multisig Plugin:**
+    ```bash
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f multisigAddAddresses '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]'
+   ```
+   **Remove Approvers from Multisig Plugin:**
+   ```bash
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f multisigRemoveAddresses '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]'
+   ```
+   Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]` and `NEW_MEMBER_ADDRESS_$` with the appropriate values for your setup.
 
-4. **Add/Remove Approver from Token Voting Plugin:**
+4. **Add Approver to Token Voting Plugin:**
    Review the test that covers the addition or removal of an approver in the token voting plugin. This helps in adjusting the governance model based on token voting.
+   **<br /><br />Mint token of tokenVoting of childDAO for defined address for defined amount:**
+    ```bash
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f tokenVotingIncreaseAddressVotingPower '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]' "[AMOUNT_1, AMOUNT_2,...]"
+   ```
+   Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]`, `NEW_MEMBER_ADDRESS_$` and `AMOUNT_$` with the appropriate values for your setup.
 
 Each test script serves as a practical guide, providing real code examples for these operations. Make sure to read through these scripts to get a clear understanding of how to effectively use the Pattern SubDAO Plugin's contract functionalities.
 
