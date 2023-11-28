@@ -39,19 +39,28 @@
    Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, and `[PARENT_DAO_ADDRESS_OR_ENS]` with the appropriate values for your setup.
 
 ## 📚 How to Use 
-To understand how to interact with the contracts, navigate to the `./scripts/tests` directory. Here, you will find examples and tests for each of the following functionalities:
 
 1. **Creating a DAO:**
-   Find the test script that demonstrates how to create a new DAO. This script walks you through the process of initializing and deploying a DAO contract.
+   Find the test script that demonstrates how to create a new DAO or simply create your DAO through Aragon interface. 
 
 2. **Making a DAO SubDAO of Another DAO:**
-   Explore the script that shows how to designate one DAO as a subdao of another. This is useful for establishing hierarchical governance structures.
+   Run plugininstallation as mentioned in the Installation section. 
 
-3. **Add/Remove Approver from Multisig Plugin:**
-   Look for the test that illustrates how to add or remove an approver from the multisig plugin. This is key for managing multisig permissions and governance.
+3. **Add Approver to Multisig Plugin:**
+    ```bash
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f multisigAddAddresses '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]'
+   ```
+4. **Remove Approvers from Multisig Plugin:**
+   ```bash
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f multisigRemoveAddresses '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]'
+   ```
+   Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]` and `NEW_MEMBER_ADDRESS_$` with the appropriate values for your setup.
 
-4. **Add/Remove Approver from Token Voting Plugin:**
-   Review the test that covers the addition or removal of an approver in the token voting plugin. This helps in adjusting the governance model based on token voting.
+4. **Add Approver to Token Voting Plugin:**
+    ```bash
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f tokenVotingIncreaseAddressVotingPower '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]' "[AMOUNT_1, AMOUNT_2,...]"
+   ```
+   Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]`, `NEW_MEMBER_ADDRESS_$` and `AMOUNT_$` with the appropriate values for your setup.
 
-Each test script serves as a practical guide, providing real code examples for these operations. Make sure to read through these scripts to get a clear understanding of how to effectively use the Pattern SubDAO Plugin's contract functionalities.
+To understand how to interact with the contracts, navigate to the `./scripts/tests` directory. Each test script serves as a practical guide, providing real code examples for these operations. Make sure to read through these scripts to get a clear understanding of how to effectively use the Pattern SubDAO Plugin's contract functionalities.
 
