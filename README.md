@@ -1,7 +1,12 @@
 # 🌟 Project Title: Pattern SubDAO Plugin
 
+
 ## 📜 Introduction
 🔍 This plugin is designed to enable the creation of sub-DAOs within a parent DAO, effectively allowing one decentralized autonomous organization (DAO) to act as a sub-entity of another. It's built on the Aragon platform, leveraging its robust framework for DAO operations. This functionality is crucial for complex governance structures, enabling hierarchical management and modular organization of decentralized communities or projects.
+
+🎥 **Watch our tiny Demo Here:**
+
+[![Watch the Demo](https://img.youtube.com/vi/BYl0o2nzeVU/0.jpg)](https://www.youtube.com/watch?v=BYl0o2nzeVU)
 
 
 ## 🚀 Features
@@ -11,6 +16,8 @@
 - **Compatibility with Plugins:** Works in conjunction with both the official token voting plugin and the multisig plugin.
 - **Plugin Settings Management:** Allows for the update and management of settings in the mentioned plugins.
 - **Integration Tests as Examples:** Comes with integration tests that not only ensure reliability but also serve as practical examples for developers during coding.
+
+
 
 ## ⚙️ Installation
 👣 Follow these steps to install and set up the Pattern SubDAO Plugin:
