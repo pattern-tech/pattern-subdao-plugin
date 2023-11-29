@@ -1,7 +1,7 @@
 import buildMetadata from './src/build-metadata.json';
 import releaseMetadata from './src/release-metadata.json';
 
-export const PLUGIN_REPO_ENS_NAME = `ws-test-${new Date().getTime()}`;
+export const PLUGIN_REPO_ENS_NAME = `pattern-subdao-plugin`;
 export const PLUGIN_CONTRACT_NAME = 'SubDAOPlugin';
 export const PLUGIN_SETUP_CONTRACT_NAME = 'SubDAOPluginSetup';
 export const VERSION = {

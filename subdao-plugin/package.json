@@ -1,11 +1,11 @@
 {
-    "name": "@aragon/todo-osx-plugin-contracts",
+    "name": "pattern-subdao-plugin",
     "license": "AGPL-3.0-or-later",
     "description": "",
     "version": "1.0.0",
     "author": {
-        "name": "aragon",
-        "url": "https://github.com/aragon"
+        "name": "microflow",
+        "url": "https://github.com/Microflow-xyz"
     },
     "devDependencies": {
         "@ethersproject/abi": "^5.7.0",

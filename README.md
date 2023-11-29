@@ -37,6 +37,21 @@
    bun plugininstall -n [NETWORK] -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS]
    ```
    Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, and `[PARENT_DAO_ADDRESS_OR_ENS]` with the appropriate values for your setup.
+   The pluginRepo has already been registered on Goerli, Mumbai and Polygon networks and you can use these network without any additonal steps.
+   | Network        | Plugin Repo Address                              |
+   |----------------|--------------------------------------------------|
+   | goerli         | `0x44B7C01C5101bb94B4fA9A7f72c42bcAA87979Ca`       |
+   | polygon        | `0x927273f4a0f1eb268c6a11c63882a57ce404f1c0`       |
+   | polygonMumbai  | `0x1a8A1fcF888bB053da7baeF3F4c1C8129987CeCc`       |
+   To use the contract on other networks take the following steps:
+   1. **Navigate to the subdao-plugin directory**
+   2. **Run `yarn install`**
+   3. **Rename `.env.example` to `.env`**
+   4. **Update the `.env` file with your credentials**
+   5. **Add hardhat config per your need**
+   6. **Add your plugin repo and rpc details to `/src/lib/constants.ts`**  
+   7. **Run `yarn deploy --network [NETWORK_NAME]`**  
+
 
 ## 📚 How to Use 
 
