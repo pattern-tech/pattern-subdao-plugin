@@ -68,13 +68,13 @@
    ```
 4. **Remove Approvers from Multisig Plugin:**
    ```bash
-   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f multisigRemoveAddresses '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]'
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f multisigRemoveAddresses '[NEW_MEMBER_ADDRESS_1,NEW_MEMBER_ADDRESS_2,...]'
    ```
    Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]` and `NEW_MEMBER_ADDRESS_$` with the appropriate values for your setup.
 
 4. **Add Approver to Token Voting Plugin:**
     ```bash
-   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f tokenVotingIncreaseAddressVotingPower '["NEW_MEMBER_ADDRESS_1","NEW_MEMBER_ADDRESS_2,...]' "[AMOUNT_1, AMOUNT_2,...]"
+   bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f tokenVotingIncreaseAddressVotingPower '[NEW_MEMBER_ADDRESS_1,NEW_MEMBER_ADDRESS_2,...]' '[AMOUNT_1, AMOUNT_2,...]'
    ```
    Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]`, `NEW_MEMBER_ADDRESS_$` and `AMOUNT_$` with the appropriate values for your setup.
 
