@@ -23,6 +23,7 @@ import { hexToBytes } from './../lib/helpers';
 import {getVotingPluginAddress, installSubDaoPlugin} from './../client/installSubDAOPlugin';
 import {createNewDAO} from "../client/newDao";
 import {ChangeVotingSettingClient} from "../client/changeVotingSetting";
+import {MULTISIG_ABI} from "../lib/abis";
 
 
 function convertTODecimal(value:number,decimal:number){
@@ -87,9 +88,9 @@ const multisigPluginSettings :MultisigPluginSettings={
     }
 }
 
-const parentEns=`parentdao-${new Date().getTime()}.dao.eth`
-const childEns1=`child1dao-${new Date().getTime()}.dao.eth`
-const childEns2=`child2dao-${new Date().getTime()}.dao.eth`
+let parentEns=`parentdao-${new Date().getTime()}.dao.eth`
+let childEns1=`child1dao-${new Date().getTime()}.dao.eth`
+let childEns2=`child2dao-${new Date().getTime()}.dao.eth`
 console.log('parentEns:',parentEns)
 console.log('childEns1:',childEns1)
 console.log('childEns2:',childEns2)
@@ -100,6 +101,10 @@ let daoAddressChild1: string;
 let pluginAddressesChild1: string[];
 let daoAddressChild2: string;
 let pluginAddressesChild2: string[];
+let changeVotingClientChild1:ChangeVotingSettingClient;
+let changeVotingClientChild2:ChangeVotingSettingClient;
+let subAdminPluginChild1;
+let subAdminPluginChild2;
 
 beforeAll( async() => {
     // const{daoAddress:daoParent, pluginAddresses:pluginParent}=await createNewDAO(network,createDAOMetadata,[tokenVotingPluginSettings],parentEns);
@@ -113,23 +118,55 @@ beforeAll( async() => {
     // const{daoAddress:daoChild2, pluginAddresses:pluginChild2}=await createNewDAO(network,createDAOMetadata,[multisigPluginSettings],childEns2);
     // daoAddressChild2 = daoChild2;
     // pluginAddressesChild2= pluginChild2;
+    // //---------------------------------------------
+    // // Parent DAO Contract:  0x9A3aeeF82539a6c7F1A2bb712Fe11C4a6908e3BD
+    // //                       0x1275caF82b4a1C6E1276Ab69C7f329BdbBD3510d
+    // //                       0x01ec28d9Cdda4d96EcCFd88C1B532C50272a1CEa
+    // subAdminPluginChild1=await installSubDaoPlugin(childEns1, parentEns, network);
+    // console.log('subAdminPluginChild1 finished')
+    // subAdminPluginChild2=await installSubDaoPlugin(childEns2, parentEns, network);
+    // console.log('subAdminPluginChild2 finished')
     //---------------------------------------------
-    // Parent DAO Contract:  0x9A3aeeF82539a6c7F1A2bb712Fe11C4a6908e3BD
-    //                      0x1275caF82b4a1C6E1276Ab69C7f329BdbBD3510d
-    //                      0x01ec28d9Cdda4d96EcCFd88C1B532C50272a1CEa
-    await installSubDaoPlugin('child1dao-1701257361998.dao.eth', 'parentdao-1701257361998.dao.eth', network);
-    await installSubDaoPlugin(childEns1, parentEns, network);
-    await installSubDaoPlugin(childEns2, parentEns, network);
-    //---------------------------------------------
-    // const changeVotingClient = new ChangeVotingSettingClient(parentDAO, childDAO, subAdminPlugin, network);
-    // await changeVotingClient.initial();
+    parentEns="parentdao-1701631131156.dao.eth"
+    childEns1="child1dao-1701631131156.dao.eth"
+    childEns2="child2dao-1701631131156.dao.eth"
+    subAdminPluginChild1="0xEAbeCe53a204ed38b4f865C5E8EA3590D01A65e0"
+    subAdminPluginChild2="0x797959cCa7A896DC61CCC5744510F7D76FAF1526"
 
+
+    //---------------------------------------------
+    changeVotingClientChild1 = new ChangeVotingSettingClient(parentEns, childEns1,  subAdminPluginChild1, network);
+    await changeVotingClientChild1.initial();
+    //---------------------------------------------
+    changeVotingClientChild2 = new ChangeVotingSettingClient(parentEns, childEns2,  subAdminPluginChild2, network);
+    await changeVotingClientChild2.initial();
 
 });
 
 
 describe('Testing SubDAO plugin', () => {
     test('Add new multisig admin', async () => {
+        const newMember="0x612A6506e7cdD093598D876d19c9e231737E72Be"
+        await changeVotingClientChild2.multisigAddAddresses([newMember])
+        expect(await changeVotingClientChild2.isMember(newMember,MULTISIG_ABI)).toBe(true)
+    },100000);
+    test('time',async()=>{
+        const timeout = 20000;
 
-    },1000000);
+        // Use a promise to create a delay using setTimeout
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Perform some asynchronous operations or await some promises here
+        // For example, you can use "await" with asynchronous functions or promises
+
+        // Wait for the specified time using the delay function
+        await delay(timeout);
+
+    },100000);
+    test('Remove old multisig admin', async () => {
+        const oldMember="0x612A6506e7cdD093598D876d19c9e231737E72Be"
+        await changeVotingClientChild2.multisigRemoveAddresses([oldMember])
+        expect(await changeVotingClientChild2.isMember(oldMember,MULTISIG_ABI)).toBe(false)
+    },100000);
+
 });
