@@ -30,7 +30,7 @@ export async function createNewDAO(network:AllowedNetwork,metadata:DaoMetadata, 
     }
     const createDaoParams: CreateDaoParams = {
         metadataUri,
-        ensSubdomain: ensSubdomain, // my-org.dao.eth
+        ensSubdomain: ensSubdomain.split('.')[0], // my-org.dao.eth
         plugins: plugins, // plugin array cannot be empty or the transaction will fail. you need at least one governance mechanism to create your DAO.
     };
     const estimatedGas: GasFeeEstimation = await client.estimation.createDao(createDaoParams);
