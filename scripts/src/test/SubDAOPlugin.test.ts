@@ -18,7 +18,7 @@ import { getWallet } from '../lib/helpers';
 import { AllowedNetwork } from '../lib/constants';
 const log = console.log;
 
-import { ethers } from 'ethers';
+import {BigNumber, ethers} from 'ethers';
 import { hexToBytes } from './../lib/helpers';
 import {getVotingPluginAddress, installSubDaoPlugin} from './../client/installSubDAOPlugin';
 import {createNewDAO} from "../client/newDao";
@@ -144,29 +144,46 @@ beforeAll( async() => {
 });
 
 
+async function delayToConfirm(time:number=20000){
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    await delay(time);
+}
+
 describe('Testing SubDAO plugin', () => {
     test('Add new multisig admin', async () => {
-        const newMember="0x612A6506e7cdD093598D876d19c9e231737E72Be"
-        await changeVotingClientChild2.multisigAddAddresses([newMember])
-        expect(await changeVotingClientChild2.isMember(newMember,MULTISIG_ABI)).toBe(true)
-    },100000);
-    test('time',async()=>{
-        const timeout = 20000;
-
-        // Use a promise to create a delay using setTimeout
-        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-        // Perform some asynchronous operations or await some promises here
-        // For example, you can use "await" with asynchronous functions or promises
-
-        // Wait for the specified time using the delay function
-        await delay(timeout);
-
+        const newMembers=["0x612A6506e7cdD093598D876d19c9e231737E72Be"]
+        await changeVotingClientChild2.multisigAddAddresses(newMembers)
+        for (let newMember of newMembers){
+            expect(await changeVotingClientChild2.isMember(newMember,MULTISIG_ABI)).toBe(true)
+        }
+        await delayToConfirm();
     },100000);
     test('Remove old multisig admin', async () => {
-        const oldMember="0x612A6506e7cdD093598D876d19c9e231737E72Be"
-        await changeVotingClientChild2.multisigRemoveAddresses([oldMember])
-        expect(await changeVotingClientChild2.isMember(oldMember,MULTISIG_ABI)).toBe(false)
+        const oldMembers=["0x612A6506e7cdD093598D876d19c9e231737E72Be"]
+        await changeVotingClientChild2.multisigRemoveAddresses(oldMembers)
+        for (let oldMember of oldMembers) {
+            expect(await changeVotingClientChild2.isMember(oldMember, MULTISIG_ABI)).toBe(false)
+        }
+        await delayToConfirm();
     },100000);
+    test('Mint new token voting', async()=>{
+        const newTokenHolders=["0x612A6506e7cdD093598D876d19c9e231737E72Be"]
+        const amountEach=[convertTODecimal(5,18)]
+        let oldBalances=[]
+        for (let holder of newTokenHolders) {
+            let balance=await changeVotingClientChild1.balanceToken(holder)
+            oldBalances.push(balance);
+        }
+        await changeVotingClientChild1.tokenVotingIncreaseAddressVotingPower(newTokenHolders,amountEach)
+        let newBalances=[]
+        for (let holder of newTokenHolders) {
+            let balance=await changeVotingClientChild1.balanceToken(holder)
+            newBalances.push(balance);
+        }
+        for (let indexNewBalance in newBalances) {
+            expect(newBalances[indexNewBalance].toBigInt().toString()).toBe((oldBalances[indexNewBalance].toBigInt()+BigInt(amountEach[indexNewBalance])).toString())
+        }
 
+
+    },100000);
 });

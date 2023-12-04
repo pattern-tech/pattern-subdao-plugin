@@ -128,6 +128,17 @@ export class ChangeVotingSettingClient {
         }
     }
 
+    async balanceToken(address:string){
+        const deployer=getWallet();
+        const Contract=this.connectContract(deployer,this.votingToken,GovernanceERC20ABI);
+        try {
+            const result = await Contract["balanceOf"](address);
+            return result;
+        } catch (error) {
+            console.error('Error calling contract function:', error);
+        }
+    }
+
     private async checkIsAnyRepetetive(newApprovers:string[],votingAbi:any){
         for (let approver of newApprovers) {
             let isMember=await this.isMember(approver,votingAbi)
@@ -272,7 +283,7 @@ export class ChangeVotingSettingClient {
         // parent porposal -> subdao plugin -> Token address
         const mintDaoAction: DaoAction[]=[]
         for (let indexOfApprovers in newApprovers){
-            let encodedFunctionDataERC20=this.encodedFunctionData(GovernanceERC20ABI,'mint',[newApprovers[indexOfApprovers],amounts[indexOfApprovers]])
+            let encodedFunctionDataERC20=this.encodedFunctionData(GovernanceERC20ABI,'mint',[newApprovers[indexOfApprovers],amounts[indexOfApprovers].toString()])
             let daoActionToken:DaoAction={
                 to:this.votingToken,
                 value:BigInt(0),
