@@ -185,6 +185,7 @@ export async function installSubDaoPlugin(childDAO: string, parentDAO: string, n
         });
         await iterateSteps(createProposalSteps);
     }
+    return installdata.pluginAddress;
 }
 
 export async function iterateSteps(createProposalSteps: AsyncGenerator<ProposalCreationStepValue, any, unknown>) {

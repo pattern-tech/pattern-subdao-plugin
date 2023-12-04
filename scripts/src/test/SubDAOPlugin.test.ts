@@ -4,291 +4,186 @@ import {
     ApplyInstallationParams,
     DaoAction,
     MetadataAbiInput,
-    PrepareInstallationParams,
+    PrepareInstallationParams, ProposalMetadata,
 } from '@aragon/sdk-client-common';
-import { VoteValues } from '@aragon/sdk-client';
+import {
+    DaoMetadata,
+    MultisigPluginSettings,
+    TokenVotingPluginInstall,
+    VoteValues,
+    VotingMode
+} from '@aragon/sdk-client';
 import { Client, TokenVotingClient } from '../lib/sdk';
 import { getWallet } from '../lib/helpers';
 import { AllowedNetwork } from '../lib/constants';
 const log = console.log;
 
-import { ethers } from 'ethers';
+import {BigNumber, ethers} from 'ethers';
 import { hexToBytes } from './../lib/helpers';
-import { getVotingPluginAddress } from './../client/installSubDAOPlugin';
+import {getVotingPluginAddress, installSubDaoPlugin} from './../client/installSubDAOPlugin';
+import {createNewDAO} from "../client/newDao";
+import {ChangeVotingSettingClient} from "../client/changeVotingSetting";
+import {MULTISIG_ABI} from "../lib/abis";
 
-beforeAll(() => {
-    // setup tests
+
+function convertTODecimal(value:number,decimal:number){
+    return value*Math.pow(10,decimal);
+}
+
+
+const network: AllowedNetwork = 'goerli';
+//TODO
+const porposalMetadata:ProposalMetadata = {
+    title: 'Create dao',
+    summary: 'Create dao',
+    description: `By installing this plugin, the plugin will grant the execution access of child da to parent`,
+    resources: [
+        {
+            url: 'https://patterns.community',
+            name: 'Pattern',
+        },
+    ],
+    media: {
+        header: 'https://assets-global.website-files.com/65410dc30116ce87ecbef5cd/654f75bc7db9aa282ca87e21_Logo%2Btext%20White.png',
+        logo: 'https://assets-global.website-files.com/65410dc30116ce87ecbef5cd/654f75bc7db9aa282ca87e21_Logo%2Btext%20White.png',
+    },
+};
+const createDAOMetadata: DaoMetadata = {
+    name: "My DAO",
+    description: "This is a description",
+    avatar: "https://images.freeimages.com/images/large-previews/360/banana-1-1330048.jpg",
+    links: [{
+        name: "Web site",
+        url: "https://...",
+    }]
+}
+
+const tokenVotingPluginSettings:TokenVotingPluginInstall ={
+    votingSettings: {
+        minDuration: 60 * 60 * 24 * 2, // seconds
+        minParticipation: 0.25, // 25%
+        supportThreshold: 0.5, // 50%
+        minProposerVotingPower: BigInt("5000"), // default 0
+        votingMode: VotingMode.EARLY_EXECUTION, // default is STANDARD. other options: EARLY_EXECUTION, VOTE_REPLACEMENT
+    },
+    newToken: {
+        name: "Token", // the name of your token
+        symbol: "TOK", // the symbol for your token. shouldn't be more than 5 letters
+        decimals: 18, // the number of decimals your token uses
+        //   minter: "0x...", // optional. if you don't define any, we'll use the standard OZ ERC20 contract. Otherwise, you can define your own token minter contract address.
+        balances: [
+            { // Defines the initial balances of the new token
+                address: "0x2D5240cd92F30228bcA173431323887436295818", // address of the account to receive the newly minted tokens
+                balance: BigInt(convertTODecimal(10,18)), // amount of tokens that address should receive
+            },
+        ],
+    },
+};
+
+const multisigPluginSettings :MultisigPluginSettings={
+    members:["0x2D5240cd92F30228bcA173431323887436295818"],
+    votingSettings:{
+        minApprovals: 1,
+        onlyListed: true,
+    }
+}
+
+let parentEns=`parentdao-${new Date().getTime()}.dao.eth`
+let childEns1=`child1dao-${new Date().getTime()}.dao.eth`
+let childEns2=`child2dao-${new Date().getTime()}.dao.eth`
+console.log('parentEns:',parentEns)
+console.log('childEns1:',childEns1)
+console.log('childEns2:',childEns2)
+
+let daoAddressParent: string;
+let pluginAddressesParent: string[];
+let daoAddressChild1: string;
+let pluginAddressesChild1: string[];
+let daoAddressChild2: string;
+let pluginAddressesChild2: string[];
+let changeVotingClientChild1:ChangeVotingSettingClient;
+let changeVotingClientChild2:ChangeVotingSettingClient;
+let subAdminPluginChild1;
+let subAdminPluginChild2;
+
+beforeAll( async() => {
+    // const{daoAddress:daoParent, pluginAddresses:pluginParent}=await createNewDAO(network,createDAOMetadata,[tokenVotingPluginSettings],parentEns);
+    // daoAddressParent = daoParent;
+    // pluginAddressesParent = pluginParent;
+    // //---------------------------------------------
+    // const{daoAddress:daoChild1, pluginAddresses:pluginChild1}=await createNewDAO(network,createDAOMetadata,[tokenVotingPluginSettings],childEns1);
+    // daoAddressChild1 = daoChild1;
+    // pluginAddressesChild1 = pluginChild1;
+    // //---------------------------------------------
+    // const{daoAddress:daoChild2, pluginAddresses:pluginChild2}=await createNewDAO(network,createDAOMetadata,[multisigPluginSettings],childEns2);
+    // daoAddressChild2 = daoChild2;
+    // pluginAddressesChild2= pluginChild2;
+    // //---------------------------------------------
+    // // Parent DAO Contract:  0x9A3aeeF82539a6c7F1A2bb712Fe11C4a6908e3BD
+    // //                       0x1275caF82b4a1C6E1276Ab69C7f329BdbBD3510d
+    // //                       0x01ec28d9Cdda4d96EcCFd88C1B532C50272a1CEa
+    // subAdminPluginChild1=await installSubDaoPlugin(childEns1, parentEns, network);
+    // console.log('subAdminPluginChild1 finished')
+    // subAdminPluginChild2=await installSubDaoPlugin(childEns2, parentEns, network);
+    // console.log('subAdminPluginChild2 finished')
+    //---------------------------------------------
+    parentEns="parentdao-1701631131156.dao.eth"
+    childEns1="child1dao-1701631131156.dao.eth"
+    childEns2="child2dao-1701631131156.dao.eth"
+    subAdminPluginChild1="0xEAbeCe53a204ed38b4f865C5E8EA3590D01A65e0"
+    subAdminPluginChild2="0x797959cCa7A896DC61CCC5744510F7D76FAF1526"
+
+
+    //---------------------------------------------
+    changeVotingClientChild1 = new ChangeVotingSettingClient(parentEns, childEns1,  subAdminPluginChild1, network);
+    await changeVotingClientChild1.initial();
+    //---------------------------------------------
+    changeVotingClientChild2 = new ChangeVotingSettingClient(parentEns, childEns2,  subAdminPluginChild2, network);
+    await changeVotingClientChild2.initial();
+
 });
 
 
+async function delayToConfirm(time:number=20000){
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    await delay(time);
+}
+
 describe('Testing SubDAO plugin', () => {
     test('Add new multisig admin', async () => {
-        const parent = 'parentdao.dao.eth'; // parent
-        const child = 'mehrdadchilddao.dao.eth';
-        const NETWORK: AllowedNetwork = 'goerli';
-        const deployer = getWallet();
-        const client = Client(NETWORK);
-        const tokenVotingClient = TokenVotingClient(NETWORK);
-
-        const parentDaoDetails = await client.methods.getDao(parent);
-        if (!parentDaoDetails) throw new Error('DAO not found');
-        const childDaoDetails = await client.methods.getDao(child);
-        if (!childDaoDetails) throw new Error('DAO not found');
-
-        const subdaoPluginContractAddress = '0xaC80199F6392609c58b6A4AF22a73b3EaBE37dcc';
-        const toBeAddedApprovers = ['0x00f3eE67e37dE62b8122EC512B3eB484f9C947cF'];
-
-        const childContractAddress = childDaoDetails.address;
-
-        const parentContractAddress = parentDaoDetails.address;
-        const { votingPluginAddress: parentVotingPluginContractAddress, votingPluginType: parentVotingPluginType } =
-            getVotingPluginAddress(parentDaoDetails);
-        const { votingPluginAddress: childVotingPluginContractAddress, votingPluginType: childVotingPluginType } =
-            getVotingPluginAddress(childDaoDetails);
-
-        log('Parent DAO Contract: ', parentContractAddress);
-        log('Parent Voting Plugin: ', parentVotingPluginContractAddress);
-        log('Parent Voting type: ', parentVotingPluginType);
-        log('Child DAO Contract: ', childContractAddress);
-        log('Child Voting Plugin: ', childVotingPluginContractAddress);
-        log('Child Voting type: ', childVotingPluginType);
-        log('SubDAO plugin address: ', subdaoPluginContractAddress);
-        log('New approvers we want to add: ', toBeAddedApprovers)
-        log('Child DAO plugins: ', childDaoDetails.plugins)
-        //addAddresses
-        const multisigABI = [
-            {
-                type: 'function',
-                name: 'addAddresses',
-                inputs: [
-                    {
-                        type: 'address[]',
-                        name: '_members',
-                    },
-                ],
-                stateMutability: 'nonpayable', // specify the stateMutability property
-                outputs: [],
-            },
-        ];
-
-        const multisigPluginInterface = new ethers.utils.Interface(multisigABI);
-        //TODO
-        const multisigUpdateData = multisigPluginInterface.encodeFunctionData('addAddresses', [toBeAddedApprovers]);
-
-        //TODO
-        const updateVotingSettingDaoAction: DaoAction[] = [
-            {
-                to: childVotingPluginContractAddress, //multidig address
-                value: BigInt(0),
-                data: hexToBytes(multisigUpdateData),
-            },
-        ];
-        const subdaoPluginAbi = [
-            {
-                inputs: [
-                    {
-                        internalType: 'address',
-                        name: 'dao',
-                        type: 'address',
-                    },
-                    {
-                        internalType: 'address',
-                        name: 'where',
-                        type: 'address',
-                    },
-                    {
-                        internalType: 'address',
-                        name: 'who',
-                        type: 'address',
-                    },
-                    {
-                        internalType: 'bytes32',
-                        name: 'permissionId',
-                        type: 'bytes32',
-                    },
-                ],
-                name: 'DaoUnauthorized',
-                type: 'error',
-            },
-            {
-                anonymous: false,
-                inputs: [
-                    {
-                        indexed: false,
-                        internalType: 'uint8',
-                        name: 'version',
-                        type: 'uint8',
-                    },
-                ],
-                name: 'Initialized',
-                type: 'event',
-            },
-            {
-                inputs: [],
-                name: 'PARENT_PERMISSION_ID',
-                outputs: [
-                    {
-                        internalType: 'bytes32',
-                        name: '',
-                        type: 'bytes32',
-                    },
-                ],
-                stateMutability: 'view',
-                type: 'function',
-            },
-            {
-                inputs: [],
-                name: 'dao',
-                outputs: [
-                    {
-                        internalType: 'contract IDAO',
-                        name: '',
-                        type: 'address',
-                    },
-                ],
-                stateMutability: 'view',
-                type: 'function',
-            },
-            {
-                inputs: [
-                    {
-                        components: [
-                            {
-                                internalType: 'address',
-                                name: 'to',
-                                type: 'address',
-                            },
-                            {
-                                internalType: 'uint256',
-                                name: 'value',
-                                type: 'uint256',
-                            },
-                            {
-                                internalType: 'bytes',
-                                name: 'data',
-                                type: 'bytes',
-                            },
-                        ],
-                        internalType: 'struct IDAO.Action[]',
-                        name: '_actions',
-                        type: 'tuple[]',
-                    },
-                ],
-                name: 'execute',
-                outputs: [],
-                stateMutability: 'nonpayable',
-                type: 'function',
-            },
-            {
-                inputs: [
-                    {
-                        internalType: 'contract IDAO',
-                        name: '_childDAO',
-                        type: 'address',
-                    },
-                    {
-                        internalType: 'address',
-                        name: '_parentDAO',
-                        type: 'address',
-                    },
-                ],
-                name: 'initialize',
-                outputs: [],
-                stateMutability: 'nonpayable',
-                type: 'function',
-            },
-            {
-                inputs: [],
-                name: 'parentDAO',
-                outputs: [
-                    {
-                        internalType: 'address',
-                        name: '',
-                        type: 'address',
-                    },
-                ],
-                stateMutability: 'view',
-                type: 'function',
-            },
-            {
-                inputs: [],
-                name: 'pluginType',
-                outputs: [
-                    {
-                        internalType: 'enum IPlugin.PluginType',
-                        name: '',
-                        type: 'uint8',
-                    },
-                ],
-                stateMutability: 'pure',
-                type: 'function',
-            },
-            {
-                inputs: [
-                    {
-                        internalType: 'bytes4',
-                        name: '_interfaceId',
-                        type: 'bytes4',
-                    },
-                ],
-                name: 'supportsInterface',
-                outputs: [
-                    {
-                        internalType: 'bool',
-                        name: '',
-                        type: 'bool',
-                    },
-                ],
-                stateMutability: 'view',
-                type: 'function',
-            },
-        ];
+        const newMembers=["0x612A6506e7cdD093598D876d19c9e231737E72Be"]
+        await changeVotingClientChild2.multisigAddAddresses(newMembers)
+        for (let newMember of newMembers){
+            expect(await changeVotingClientChild2.isMember(newMember,MULTISIG_ABI)).toBe(true)
+        }
+        await delayToConfirm();
+    },100000);
+    test('Remove old multisig admin', async () => {
+        const oldMembers=["0x612A6506e7cdD093598D876d19c9e231737E72Be"]
+        await changeVotingClientChild2.multisigRemoveAddresses(oldMembers)
+        for (let oldMember of oldMembers) {
+            expect(await changeVotingClientChild2.isMember(oldMember, MULTISIG_ABI)).toBe(false)
+        }
+        await delayToConfirm();
+    },100000);
+    test('Mint new token voting', async()=>{
+        const newTokenHolders=["0x612A6506e7cdD093598D876d19c9e231737E72Be"]
+        const amountEach=[convertTODecimal(5,18)]
+        let oldBalances=[]
+        for (let holder of newTokenHolders) {
+            let balance=await changeVotingClientChild1.balanceToken(holder)
+            oldBalances.push(balance);
+        }
+        await changeVotingClientChild1.tokenVotingIncreaseAddressVotingPower(newTokenHolders,amountEach)
+        let newBalances=[]
+        for (let holder of newTokenHolders) {
+            let balance=await changeVotingClientChild1.balanceToken(holder)
+            newBalances.push(balance);
+        }
+        for (let indexNewBalance in newBalances) {
+            expect(newBalances[indexNewBalance].toBigInt().toString()).toBe((oldBalances[indexNewBalance].toBigInt()+BigInt(amountEach[indexNewBalance])).toString())
+        }
 
 
-        const daoInterface = new ethers.utils.Interface(subdaoPluginAbi);
-        const data = daoInterface.encodeFunctionData('execute', [updateVotingSettingDaoAction]);
-
-        //TODO
-        const daoActions1: DaoAction[] = [
-            {
-                to: subdaoPluginContractAddress,
-                value: BigInt(0),
-                data: hexToBytes(data), //update_multisig
-            },
-        ];
-
-
-        const metadataUri: string = await tokenVotingClient.methods.pinMetadata({
-            title: 'Add multisig address',
-            summary: 'This is a test proposal',
-            description: 'This is the description of a long test proposal',
-            resources: [
-                {
-                    url: 'https://thforumurl.com',
-                    name: 'Forum',
-                },
-            ],
-            media: {
-                header: 'https://fileserver.com/header.png',
-                logo: 'https://fileserver.com/logo.png',
-            },
-        });
-        const createProposalSteps = tokenVotingClient.methods.createProposal({
-            metadataUri,
-            pluginAddress: parentVotingPluginContractAddress,
-            actions: daoActions1,
-            creatorVote: VoteValues.YES, // creator votes yes
-            executeOnPass: true, // execute on pass
-            startDate: new Date(0), // Start immediately
-            endDate: new Date(0), // uses minimum voting duration
-        });
-
-        const createProposalStep1Value = await (await createProposalSteps.next()).value;
-        log('Transaction Hash: ', await createProposalStep1Value.txHash);
-
-        const createProposalStep2Value = await (await createProposalSteps.next()).value;
-
-        log("Proposal ID: ", await createProposalStep2Value.proposalId);
-
-    },1000000);
+    },100000);
 });

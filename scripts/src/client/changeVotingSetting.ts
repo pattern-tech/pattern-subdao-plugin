@@ -1,7 +1,7 @@
 //class which initial with parentAddressOrEns, childAddressOrEns, subDaoPluginAddress
 import {Client, MultisigClient, TokenVotingClient} from "../lib/sdk";
 import {AllowedNetwork} from "../lib/constants";
-import {DaoDetails} from "@aragon/sdk-client";
+import {DaoDetails, VoteValues} from "@aragon/sdk-client";
 import {
     getVotingPluginAddress,
     installSubDaoPlugin,
@@ -117,11 +117,22 @@ export class ChangeVotingSettingClient {
         }
     }
 
-    private async isMember(address:string,votingAbi:any){
+    async isMember(address:string,votingAbi:any){
         const deployer=getWallet();
         const Contract=this.connectContract(deployer,this.childVotingPluginContractAddress,votingAbi);
         try {
             const result = await Contract["isMember"](address);
+            return result;
+        } catch (error) {
+            console.error('Error calling contract function:', error);
+        }
+    }
+
+    async balanceToken(address:string){
+        const deployer=getWallet();
+        const Contract=this.connectContract(deployer,this.votingToken,GovernanceERC20ABI);
+        try {
+            const result = await Contract["balanceOf"](address);
             return result;
         } catch (error) {
             console.error('Error calling contract function:', error);
@@ -137,18 +148,32 @@ export class ChangeVotingSettingClient {
     }
 
     private async sendProposal(proposalMetadata,daoActions:DaoAction[]){
-
-        const metadataUri: string = await this.parentVotingClient.methods.pinMetadata(proposalMetadata);
-        const createProposalSteps=this.parentVotingClient.methods.createProposal({
-            metadataUri,
-            pluginAddress: this.parentVotingPluginContractAddress,
-            actions: daoActions,
-            approve: true,
-            tryExecution: true,
-            startDate: new Date(0), // Start immediately
-            endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)), // uses minimum voting duration
-        });
-        await iterateSteps(createProposalSteps);
+        if (this.parentVotingPluginType === TOKEN_VOTING_PLUGIN_ID) {
+            const metadataUri: string = await this.parentVotingClient.methods.pinMetadata(proposalMetadata);
+            const createProposalSteps = this.parentVotingClient.methods.createProposal({
+                metadataUri,
+                pluginAddress: this.parentVotingPluginContractAddress,
+                actions: daoActions,
+                creatorVote: VoteValues.YES, // creator votes yes
+                executeOnPass: true, // execute on pass
+                startDate: new Date(0), // Start immediately
+                endDate: new Date(0), // uses minimum voting duration
+            });
+            await iterateSteps(createProposalSteps);
+        }
+        else if (this.parentVotingPluginType === MULTISIG_PLUGIN_ID) {
+            const metadataUri: string = await this.parentVotingClient.methods.pinMetadata(proposalMetadata);
+            const createProposalSteps = this.parentVotingClient.methods.createProposal({
+                metadataUri,
+                pluginAddress: this.parentVotingPluginContractAddress,
+                actions: daoActions,
+                approve: true,
+                tryExecution: true,
+                startDate: new Date(0), // Start immediately
+                endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)), // uses minimum voting duration
+            });
+            await iterateSteps(createProposalSteps);
+        }
 
     }
 
@@ -172,7 +197,6 @@ export class ChangeVotingSettingClient {
                 data: hexToBytes(encodedFunctionDataMultisig),
             },
         ];
-
         const encodedFunctionDataSubDAOAdmin=this.encodedFunctionData(SUB_DAO_ADMIN_ABI,'execute',[updateVotingSettingDaoAction])
         const executeSubDAOAdminDaoAction: DaoAction[] = [
             {
@@ -259,7 +283,7 @@ export class ChangeVotingSettingClient {
         // parent porposal -> subdao plugin -> Token address
         const mintDaoAction: DaoAction[]=[]
         for (let indexOfApprovers in newApprovers){
-            let encodedFunctionDataERC20=this.encodedFunctionData(GovernanceERC20ABI,'mint',[newApprovers[indexOfApprovers],amounts[indexOfApprovers]])
+            let encodedFunctionDataERC20=this.encodedFunctionData(GovernanceERC20ABI,'mint',[newApprovers[indexOfApprovers],amounts[indexOfApprovers].toString()])
             let daoActionToken:DaoAction={
                 to:this.votingToken,
                 value:BigInt(0),
