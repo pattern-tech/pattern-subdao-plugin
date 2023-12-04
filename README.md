@@ -82,6 +82,22 @@
    bun changevotingsetting -c [CHILD_DAO_ADDRESS_OR_ENS] -p [PARENT_DAO_ADDRESS_OR_ENS] -n [NETWORK] -s [SUB_DAO_PLUGIN_ADDRESS] -f tokenVotingIncreaseAddressVotingPower '[NEW_MEMBER_ADDRESS_1,NEW_MEMBER_ADDRESS_2,...]' '[AMOUNT_1, AMOUNT_2,...]'
    ```
    Replace `[NETWORK]`, `[CHILD_DAO_ADDRESS_OR_ENS]`, `[PARENT_DAO_ADDRESS_OR_ENS]`, `[SUB_DAO_PLUGIN_ADDRESS]`, `NEW_MEMBER_ADDRESS_$` and `AMOUNT_$` with the appropriate values for your setup.
-
+## ✅ Test Scenarios
 To understand how to interact with the contracts, navigate to the `./scripts/tests` directory. Each test script serves as a practical guide, providing real code examples for these operations. Make sure to read through these scripts to get a clear understanding of how to effectively use the Pattern SubDAO Plugin's contract functionalities.
 
+To execute the tests, run the following command:
+```bash
+   bun test
+   ```
+This test case encompasses the creation of a parent DAO and two child DAOs. The child DAOs are uniquely configured with distinct plugins: one child DAO is equipped with a Token Voting plugin, while the other has a Multisig plugin.
+
+Additionally, the test case involves installing the SubDAO plugin on the child DAOs, enabling them to be effectively managed by the parent DAO.
+
+1. **Add New Multisig Admin:**
+This test case adds a new address as an admin to the Multisig plugin of one of the child DAOs. It ensures that the address is successfully added as a multisig admin.
+
+2. **Remove Old Multisig Admin:**
+   This test case removes an existing address from the admin list of the Multisig plugin in one of the child DAOs. It checks that the address is no longer a multisig admin after removal.
+
+3. **Mint New Token Voting:**
+   This test case mints new tokens for specified addresses in the Token Voting plugin of one of the child DAOs. It verifies that the balances of the specified addresses are updated accordingly.
